@@ -1,0 +1,25 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: openshift-operators
+resources:
+- subscription.yaml
+
+commonLabels:
+  component.opendatahub.io/name: pachyderm
+  opendatahub.io/component: "true"
+  app.kubernetes.io/part-of: pachyderm
+
+# configMapGenerator:
+# - name: pachyderm-operator-parameters
+#   env: params.env
+
+# vars:
+# - name: pachyderm_version
+#   objref:
+#     kind: ConfigMap
+#     name: pachyderm-operator-parameters
+#     apiVersion: v1
+#   fieldref:
+#     fieldpath: data.pachyderm_version
+# configurations:
+# - params.yaml

@@ -1,0 +1,115 @@
+apiVersion: kfdef.apps.kubeflow.org/v1
+kind: KfDef
+metadata:
+  name: odh-contrib
+  namespace: opendatahub
+spec:
+  applications:
+  ##################################################
+  # ODH Core Components
+  ##################################################
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: odh-common
+    name: odh-common
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: odh-dashboard
+    name: odh-dashboard
+  - kustomizeConfig:
+      overlays:
+      - additional
+      repoRef:
+        name: manifests
+        path: jupyterhub/notebook-images
+    name: notebook-images
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: odh-notebook-controller
+    name: odh-notebook-controller
+  - kustomizeConfig:
+      overlays:
+        - odh-model-controller
+      repoRef:
+        name: manifests
+        path: model-mesh
+    name: model-mesh
+  - kustomizeConfig:
+      overlays:
+        - metadata-store-mariadb
+        - ds-pipeline-ui
+        - object-store-minio
+        - default-configs
+      repoRef:
+        name: manifests
+        path: data-science-pipelines
+    name: data-science-pipelines
+  ##################################################
+  # ODH Contrib Components
+  ##################################################
+  # Ray.io
+  - kustomizeConfig:
+      repoRef:
+        name: manifests-contrib
+        path: ray/operator
+    name: ray-operator
+  - kustomizeConfig:
+      repoRef:
+        name: manifests-contrib
+        path: ray/cluster
+    name: ray-cluster
+  # Superset
+  - kustomizeConfig:
+      parameters:
+      - name: SUPERSET_ADMIN_PASSWORD
+        value: admin
+      repoRef:
+        name: manifests-contrib
+        path: superset
+    name: superset
+  # Pachyderm
+  - kustomizeConfig:
+      parameters:
+        - name: namespace
+          value: openshift-operators
+      repoRef:
+        name: manifests-contrib
+        path: odhpachyderm/operator
+    name: odhpachyderm-operator
+  - kustomizeConfig:
+      repoRef:
+        name: manifests-contrib
+        path: odhpachyderm/deployer
+    name: odhpachyderm-deployer
+  # Ceph Nano
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: ceph/object-storage/scc
+    name: ceph-nano-scc
+  - kustomizeConfig:
+      repoRef:
+        name: manifests
+        path: ceph/object-storage/nano
+    name: ceph-nano
+  # ArgoWorkflows
+  - kustomizeConfig:
+      repoRef:
+        name: manifests-contrib
+        path: odhargo/cluster
+    name: odhargo-cluster
+  - kustomizeConfig:
+      repoRef:
+        name: manifests-contrib
+        path: odhargo/odhargo
+    name: odhargo
+  repos:
+    # ODH Core component manifests
+  - name: manifests
+    uri: https://github.com/opendatahub-io/odh-manifests/tarball/master
+    # ODH Contrib component manifests
+  - name: manifests-contrib
+    uri: https://github.com/opendatahub-io-contrib/odh-contrib-manifests/tarball/main

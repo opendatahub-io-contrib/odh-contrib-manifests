@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: trino-service
+  labels:
+    instance: trino
+    role: trino-coordinator
+spec:
+  ports:
+    - name: trino-endpoint
+      protocol: TCP
+      port: 8080
+      targetPort: 8080
+    - name: metrics
+      protocol: TCP
+      port: 8082
+      targetPort: 8082
+  selector:
+    instance: trino
+    role: trino-coordinator

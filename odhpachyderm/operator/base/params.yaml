@@ -1,0 +1,3 @@
+varReference:
+- path: spec/startingCSV
+  kind: Subscription
