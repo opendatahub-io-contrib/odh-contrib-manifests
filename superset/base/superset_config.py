@@ -112,7 +112,8 @@ class CustomSecurityManager(SupersetSecurityManager):
 
     def oauth_user_info(self, provider, response=None):
         me = self.appbuilder.sm.oauth_remotes[provider].get(
-            "apis/user.openshift.io/v1/users/~"
+            "apis/user.openshift.io/v1/users/~",
+            verify=COMBINED_CERT_BUNDLE
         )
         data = me.json()
         username = data.get('metadata').get('name')
