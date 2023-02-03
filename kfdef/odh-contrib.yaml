@@ -54,13 +54,8 @@ spec:
   - kustomizeConfig:
       repoRef:
         name: manifests-contrib
-        path: ray/operator
+        path: ray/KubeRay/operator
     name: ray-operator
-  - kustomizeConfig:
-      repoRef:
-        name: manifests-contrib
-        path: ray/cluster
-    name: ray-cluster
   # Superset
   - kustomizeConfig:
       parameters:
