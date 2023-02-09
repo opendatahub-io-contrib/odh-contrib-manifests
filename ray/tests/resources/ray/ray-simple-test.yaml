@@ -23,7 +23,7 @@ spec:
         - /bin/sh
         - -c
         - |
-          python ray_tests.py
+          python ray_test.py
           sleep infinity
         resources: {}
          
