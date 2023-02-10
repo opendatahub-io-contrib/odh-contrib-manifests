@@ -54,7 +54,7 @@ spec:
   - kustomizeConfig:
       repoRef:
         name: manifests-contrib
-        path: ray/KubeRay/operator
+        path: ray/operator
     name: ray-operator
   # Superset
   - kustomizeConfig:
