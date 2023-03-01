@@ -1,18 +1,33 @@
 # Deploying Ray on Open Data Hub via the KubeRay Operator
 
-The code found here is a subset of https://github.com/ray-project/kuberay. Specifically, the manifests needed to enable Ray with an Open Data Hub deployment. 
+The code found here is a subset of https://github.com/ray-project/kuberay. Specifically, the manifests needed to enable KubeRay with an Open Data Hub deployment. 
 
 
-## Components  of the KubeRay deployment
+## Components of the KubeRay deployment
 
 1. Namespace 'ray-system'
 2. Custom Resource Definitions
 3. Operator
 4. Roles and Service Accounts
 
-## Deploy KubeRay:
+## Installation
 
-Make sure that you have the KubeRay kustomizeConfig in your ODH KfDef. This will ensure that all of the components above get installed as part of your ODH deployment.  
+There are two ways to install KubeRay. You can either **install it directly into your cluster alongside an existing Open Data Hub deployment using Kustomize** OR you can **include it as an additional component in your Open Data Hub KfDef**. Below we will walk through both approaches. 
+
+
+## Install via Kustomize:
+
+This method requires that you have [kustomize](https://kustomize.io/) and the [oc client](https://docs.openshift.com/container-platform/4.12/cli_reference/openshift_cli/getting-started-cli.html) installed in your environment. Then, from within the `ray/` directory of this repo you can run the following:
+
+```bash
+cd operator/base
+oc kustomize > deploy_kuberay.yaml
+oc create -f deploy_kuberay.yaml
+```
+
+## Install via KfDef:
+
+Alternatively, you can include the KubeRay components in your ODH KfDef. This will ensure that all of the components above get installed as part of your ODH deployment.  
 
 ```yaml
  # KubeRay
@@ -22,10 +37,14 @@ Make sure that you have the KubeRay kustomizeConfig in your ODH KfDef. This will
         path: ray/operator
     name: ray-operator
 ```
+You can find a minimal [KfDef here](ray-minimal-kfdef.yaml), that can be used to just install the core ODH components, along with everything you'll need to use KubeRay.  
 
-### Confirm the operator is running:
 
-Once ODH is installed, you can confirm the KubeRay operator deployed correctly with `oc get pods -n ray-system`.
+
+
+## Confirm the operator is running:
+
+Once installed, you can confirm the KubeRay operator has been deployed correctly with `oc get pods -n ray-system`.
 
 
 ```
@@ -35,7 +54,7 @@ kuberay-operator-867bc855b7-2tzxs      1/1     Running   0               4d19h
 
 ```
 
-### Create a test cluster 
+## Create a test cluster 
 
 Now that the operator is running, let's create a small Ray cluster and make sure the operator can handle the request correctly. From whatever namespace you want to use you can run the following command:
 
@@ -43,7 +62,7 @@ Now that the operator is running, let's create a small Ray cluster and make sure
 $ oc apply -f tests/resources/ray/ray-test-cluster-test.yaml
 ```
 
-### Confirm the cluster is running 
+## Confirm the cluster is running 
 ```
 $ oc get RayCluster 
 NAME                   DESIRED WORKERS   AVAILABLE WORKERS   STATUS   AGE
@@ -57,7 +76,7 @@ import ray
 ray.init('ray://kuberay-cluster-test-head-svc:10001')
 ```
 
-### Delete your test cluster
+## Delete your test cluster
 
 Now that you've confirmed everything is working feel free to delete your Ray test cluster. `oc delete RayCluster kuberay-cluster-test`
 

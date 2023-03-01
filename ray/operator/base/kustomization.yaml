@@ -18,11 +18,9 @@ bases:
 - ../manager
 - ../prometheus
 - namespace.yaml
-# [PROMETHEUS] To enable prometheus monitor, uncomment all sections with 'PROMETHEUS'.
-#- ../prometheus
 
 images:
 - name: kuberay/operator
   newName: kuberay/operator
-  newTag: nightly
+  newTag: v0.4.0
 
