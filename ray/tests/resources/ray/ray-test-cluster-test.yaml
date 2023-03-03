@@ -89,11 +89,11 @@ spec:
             limits:
               cpu: "8"
               memory: "8G"
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "0"
             requests:
               cpu: "2"
               memory: "2G"
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "0"
         volumes:
         - name: ray-logs
           emptyDir: {}
@@ -151,8 +151,8 @@ spec:
             limits:
               cpu: "8"
               memory: "8G"
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "0"
             requests:
               cpu: "2"
               memory: "2G"
-              nvidia.com/gpu: "1"
+              nvidia.com/gpu: "0"
