@@ -5,10 +5,9 @@ The code found here is a subset of https://github.com/ray-project/kuberay. Speci
 
 ## Components of the KubeRay deployment
 
-1. Namespace 'ray-system'
-2. Custom Resource Definitions
-3. Operator
-4. Roles and Service Accounts
+1. Custom Resource Definitions
+2. Operator
+3. Roles and Service Accounts
 
 ## Installation
 
@@ -44,11 +43,11 @@ You can find a minimal [KfDef here](ray-minimal-kfdef.yaml), that can be used to
 
 ## Confirm the operator is running:
 
-Once installed, you can confirm the KubeRay operator has been deployed correctly with `oc get pods -n ray-system`.
+Once installed, you can confirm the KubeRay operator has been deployed correctly with `oc get pods`.
 
 
 ```
-$ oc get pods -n ray-system
+$ oc get pods
 NAME                               READY   STATUS    RESTARTS        AGE
 kuberay-operator-867bc855b7-2tzxs      1/1     Running   0               4d19h
 
