@@ -69,7 +69,15 @@ kuberay-cluster-test   1                 2                   ready    13s
 
 ```
 
-Once the cluster is running you should be able to connect to it to use ray in a python script or jupyter notebook by using `ray.init(ray://kuberay-cluster-test-head-svc:10001)`. 
+Once the cluster is running you should be able to connect to it to use ray in a python script or jupyter notebook by using `ray.init('ray://kuberay-cluster-test-head-svc:10001')`. 
+
+Make sure that the version of ray in your environment matches the version of ray that is running in your cluster. If you used the `ray-test-cluster-test.yaml` above then you should be using `ray==2.1.0`. 
+
+```bash
+pip install ray==2.1.0
+```
+Then, from your python environment you can connect to the cluster with the following code:
+
 ```python 
 import ray
 ray.init('ray://kuberay-cluster-test-head-svc:10001')
