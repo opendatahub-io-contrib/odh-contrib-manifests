@@ -1,0 +1,23 @@
+varReference:
+- path: subjects/namespace
+  kind: ClusterRoleBinding
+  apiGroup: rbac.authorization.k8s.io
+- path: metadata/name
+  kind: ClusterRoleBinding
+  apiGroup: rbac.authorization.k8s.io
+- path: data
+  kind: ConfigMap
+- path: metadata/annotations/volume.beta.kubernetes.io\/storage-class
+  kind: PersistentVolumeClaim
+- path: spec/template/spec/containers[]/env/valueFrom/configMapKeyRef/name
+  kind: DeploymentConfig
+- path: spec/template/spec/containers[]/env/valueFrom/secretKeyRef/name
+  kind: DeploymentConfig
+- path: spec/template/spec/initContainers/env/valueFrom/secretKeyRef/name
+  kind: DeploymentConfig
+- path: data/notebook_destination
+  kind: ConfigMap
+- path: data/groups-config
+  kind: ConfigMap  
+- path: subjects/name
+  kind: RoleBinding

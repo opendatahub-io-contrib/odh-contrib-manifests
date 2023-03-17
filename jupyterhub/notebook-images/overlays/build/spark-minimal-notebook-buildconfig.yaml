@@ -1,0 +1,28 @@
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  labels:
+    build: s2i-spark-minimal-notebook
+  name: s2i-spark-minimal-notebook
+spec:
+  output:
+    to:
+      kind: ImageStreamTag
+      name: s2i-spark-minimal-notebook:local-build
+  source:
+    git:
+      uri: https://github.com/thoth-station/s2i-minimal-notebook
+      ref: v0.0.7
+    type: Git
+  strategy:
+    sourceStrategy:
+      forcePull: true
+      from:
+        kind: DockerImage
+        name: quay.io/odh-jupyterhub/s2i-spark-container:spark2.4.5-1
+      env:
+      - name: "ENABLE_PIPENV"
+        value: "1"
+    type: Source
+  triggers:
+  - type: ConfigChange

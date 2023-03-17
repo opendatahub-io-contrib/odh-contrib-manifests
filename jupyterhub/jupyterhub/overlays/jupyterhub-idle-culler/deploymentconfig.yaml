@@ -1,0 +1,57 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  name: jupyterhub-idle-culler
+spec:
+  selector:
+    app: jupyterhub-idle-culler
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: jupyterhub-idle-culler
+    spec:
+      initContainers:
+        - name: check-for-jh
+          image: 'quay.io/odh-jupyterhub/jupyterhub-img:v0.3.3'
+          command:
+            - /bin/sh
+            - '-c'
+            - 'while ! curl jupyterhub:8081/hub/api; do sleep 5; done'
+          resources:
+            limits:
+              cpu: 150m
+              memory: 50Mi
+            requests:
+              cpu: 150m
+              memory: 20Mi
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      containers:
+        - name: jupyterhub-idle-culler
+          image: quay.io/odh-jupyterhub/jupyterhub-img:v0.3.5
+          env:
+            - name: JUPYTERHUB_API_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: jupyterhub-idle-culler
+                  key: token
+            - name: CULLER_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: jupyterhub-cfg
+                  key: culler_timeout
+          resources:
+            limits:
+              cpu: 150m
+              memory: 50Mi
+            requests:
+              cpu: 150m
+              memory: 50Mi
+          command:
+            - jupyterhub-idle-culler
+            - --timeout=$(CULLER_TIMEOUT)  # in seconds
+            - --url=jupyterhub:8081/hub/api
+  triggers:
+    - type: ConfigChange

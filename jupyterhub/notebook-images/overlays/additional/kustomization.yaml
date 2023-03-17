@@ -1,0 +1,14 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+bases:
+- ../../base
+resources:
+- minimal-notebook-imagestream.yaml
+- generic-data-science-notebook-imagestream.yaml
+- tensorflow-notebook-imagestream.yaml
+- elyra-notebook-imagestream.yaml
+
+commonLabels:
+  opendatahub.io/component: "true"
+  component.opendatahub.io/name: jupyterhub
+  app.kubernetes.io/part-of: jupyterhub
