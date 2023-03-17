@@ -1,0 +1,34 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  labels:
+    opendatahub.io/notebook-image: "true"
+  annotations:
+    opendatahub.io/notebook-image-url: "https://github.com/thoth-station/s2i-minimal-notebook"
+    opendatahub.io/notebook-image-name: "Minimal Python"
+    opendatahub.io/notebook-image-desc: "Jupyter notebook image with minimal dependency set to start experimenting with Jupyter environment."
+  name: s2i-minimal-notebook
+spec:
+  lookupPolicy:
+    local: true
+  tags:
+  - annotations:
+      opendatahub.io/notebook-software: '[{"name":"Python","version":"v3.8.8"}]'
+      opendatahub.io/notebook-python-dependencies: '[{"name":"JupyterLab","version": "3.1.19"}, {"name": "Notebook","version": "6.4.10"}]'
+      openshift.io/imported-from: quay.io/thoth-station/s2i-minimal-py38-notebook
+    from:
+      kind: DockerImage
+      name: quay.io/thoth-station/s2i-minimal-py38-notebook:v0.3.0
+    name: "v0.3.0-py38"
+    referencePolicy:
+      type: Source
+  - annotations:
+      opendatahub.io/notebook-software: '[{"name":"Python","version":"v3.6.8"}]'
+      opendatahub.io/notebook-python-dependencies: '[{"name":"JupyterLab","version": "3.0.18"}, {"name": "Notebook","version": "6.4.10"}]'
+      openshift.io/imported-from: quay.io/thoth-station/s2i-minimal-notebook
+    from:
+      kind: DockerImage
+      name: quay.io/thoth-station/s2i-minimal-notebook:v0.3.0
+    name: "v0.3.0-py36"
+    referencePolicy:
+      type: Source

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: traefik-config
+data:
+  traefik.toml: |
+      debug = true
+      logLevel = "INFO"
+      defaultentrypoints = ["https"]
+      [entryPoints.https]
+      address = ":8080"
+      [entryPoints.healthz]
+      address = ":8081"
+      [entryPoints.auth_api]
+      address = ":8099"
+      [entryPoints.metrics]
+      address = ":8082"
+      [api]
+      dashboard = false
+      entrypoint = "auth_api"
+      [wss]
+      protocol = "https"
+      [entryPoints.auth_api.auth.basic]
+      # Generate the hash using 
+      # echo $(htpasswd -nb username password) | sed -e s/\\$/\\$\\$/g
+      # abc:123
+      users = [ "abc:$apr1$a4hgl/yM$Dq4i/FSkAzOC7Uj55xEMD/", ]
+      [file]
+      filename = "/watched/rules.toml"
+      watch = true
+      [ping]
+      entryPoint = "healthz"
+      [metrics.prometheus]
+      buckets = [0.1,0.3,1.2,5.0]
+      entryPoint = "metrics"

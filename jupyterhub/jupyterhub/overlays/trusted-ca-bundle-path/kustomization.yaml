@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+commonLabels:
+  app.kubernetes.io/part-of: jupyterhub
+
+bases:
+  - ../../base
+
+resources:
+  - trusted-cabundle-configmap.yaml
+
+patchesJson6902:
+  - path: jupyterhub-configmap.yaml
+    target:
+      version: v1
+      kind: ConfigMap
+      name: jupyterhub-cfg
+
+patchesStrategicMerge:
+  - jupyterhub-singleuser-profiles-configmap.yaml

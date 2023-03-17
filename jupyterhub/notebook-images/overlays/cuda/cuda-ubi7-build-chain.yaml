@@ -1,0 +1,258 @@
+apiVersion: v1
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appTypes: cuda-build-chain
+    name: cuda
+  spec:
+    lookupPolicy:
+      local: true
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-cuda-python-36-ubi7
+  spec:
+    lookupPolicy:
+      local: true
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appName1: $(cuda_version)-base-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-base-ubi7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: cuda:$(cuda_version)-base-ubi7
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    source:
+      contextDir: "dist/$(cuda_version)/ubi7-x86_64/base"
+      git:
+        ref: master
+        uri: https://github.com/thoth-station/cuda.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile
+        env:
+        - name: S2I_IMAGE
+          value: registry.access.redhat.com/rhscl/s2i-base-rhel7:1
+        from:
+          kind: DockerImage
+          name: registry.access.redhat.com/rhscl/s2i-base-rhel7:1
+        noCache: true
+      type: Docker
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appName1: $(cuda_version)-runtime-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-runtime-ubi7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: cuda:$(cuda_version)-runtime-ubi7
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    source:
+      contextDir: "dist/$(cuda_version)/ubi7-x86_64/runtime/"
+      git:
+        ref: master
+        uri: https://github.com/thoth-station/cuda.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: cuda:$(cuda_version)-base-ubi7
+        noCache: true
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appName1: $(cuda_version)-cudnn7-runtime-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-cudnn7-runtime-ubi7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: cuda:$(cuda_version)-cudnn7-runtime-ubi7
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    source:
+      contextDir: "dist/$(cuda_version)/ubi7-x86_64/runtime/cudnn7/"
+      git:
+        ref: master
+        uri: https://github.com/thoth-station/cuda.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: cuda:$(cuda_version)-runtime-ubi7
+        noCache: true
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appName1: $(cuda_version)-devel-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-devel-ubi7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: cuda:$(cuda_version)-devel-ubi7
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    source:
+      contextDir: "dist/$(cuda_version)/ubi7-x86_64/devel/"
+      git:
+        ref: master
+        uri: https://github.com/thoth-station/cuda.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: cuda:$(cuda_version)-runtime-ubi7
+        noCache: true
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appName1: $(cuda_version)-cudnn7-devel-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-cudnn7-devel-ubi7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: cuda:$(cuda_version)-cudnn7-devel-ubi7
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    source:
+      contextDir: "dist/$(cuda_version)/ubi7-x86_64/devel/cudnn7/"
+      git:
+        ref: master
+        uri: https://github.com/thoth-station/cuda.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        from:
+          kind: ImageStreamTag
+          name: cuda:$(cuda_version)-devel-ubi7
+        noCache: true
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    labels:
+      appName: $(cuda_version)-cuda-chain-ubi7
+      appName1: python-36-ubi7
+      appTypes: cuda-build-chain
+    name: $(cuda_version)-cuda-python-36-ubi7
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: $(cuda_version)-cuda-python-36-ubi7:latest
+    resources:
+      limits:
+        cpu: "2"
+        memory: 4Gi
+      requests:
+        cpu: "1"
+        memory: 2Gi
+    source:
+      contextDir: "3.6"
+      git:
+        ref: master
+        uri: https://github.com/thoth-station/s2i-python-container.git
+      type: Git
+    strategy:
+      dockerStrategy:
+        dockerfilePath: Dockerfile.rhel7
+        from:
+          kind: ImageStreamTag
+          name: cuda:$(cuda_version)-cudnn7-devel-ubi7
+        noCache: true
+    triggers:
+    - type: ConfigChange
+    - type: ImageChange
+    - generic:
+        secret: ${GENERIC_WEBHOOK_SECRET}
+      type: Generic
+kind: List
+metadata: {}

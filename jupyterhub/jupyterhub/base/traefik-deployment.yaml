@@ -1,0 +1,141 @@
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: traefik-proxy
+  labels:
+    k8s-app: traefik-proxy
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      k8s-app: traefik-proxy
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        k8s-app: traefik-proxy
+        name: traefik-proxy
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: name
+                      operator: In
+                      values:
+                        - traefik-proxy
+                topologyKey: topology.kubernetes.io/zone
+      serviceAccountName: traefik-proxy
+
+      volumes:
+      - name: config
+        configMap:
+          name: traefik-config
+      - name: watched
+        emptyDir: {}
+
+      initContainers:
+      - name: init-touch-rules
+        image: "registry.access.redhat.com/ubi8/ubi-micro:8.4"
+        volumeMounts:
+        - mountPath: "/watched"
+          name: "watched"
+        resources:
+          limits:
+            cpu: 150m
+            memory: 50Mi
+          requests:
+            cpu: 150m
+            memory: 20Mi
+        command:
+        - "/bin/bash"
+        - -c
+        args:
+        # this file has to exist before traefik starts
+        # so the watch can be set up properly
+        - touch /watched/rules.toml
+
+      containers:
+      - image: quay.io/internaldatahub/traefik:v1.7-build
+        name: traefik-proxy
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        - mountPath: "/config"
+          name: "config"
+        - mountPath: "/watched"
+          name: "watched"
+        ports:
+        - containerPort: 8080
+          name: api
+        - containerPort: 8099
+          name: auth
+        args:
+        - --configfile=/config/traefik.toml
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: 8081
+          failureThreshold: 3
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: 8081
+          failureThreshold: 1
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        resources:
+          limits:
+            cpu: 100m
+            memory: 100Mi
+
+      - image: quay.io/internaldatahub/configmap-puller:0.1
+        imagePullPolicy: Always
+        name: configmap-puller
+        env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        volumeMounts:
+        - mountPath: "/watched"
+          name: "watched"
+        args:
+        - -outfile-name=/watched/rules.toml
+        - -configmap-name=traefik-rules
+        - -configmap-namespace=$(NAMESPACE)
+        - -configmap-key=rules.toml
+        resources:
+          limits:
+            cpu: 30m
+            memory: 200Mi
+        livenessProbe:
+          exec:
+            command:
+              - cat
+              - /watched/rules.toml
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          exec:
+            command:
+              - cat
+              - /watched/rules.toml
+          initialDelaySeconds: 5
+          timeoutSeconds: 1
+          periodSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3

@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cuda-11.0.3-build-job
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cuda-11.0.3-build-job
+subjects:
+  - kind: ServiceAccount
+    name: cuda-11.0.3-build-job
+    namespace: $(namespace)

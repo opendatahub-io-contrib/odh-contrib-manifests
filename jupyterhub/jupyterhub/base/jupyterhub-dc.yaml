@@ -1,0 +1,260 @@
+apiVersion: apps.openshift.io/v1
+kind: DeploymentConfig
+metadata:
+  annotations:
+      app.openshift.io/connects-to: >-
+        [{"apiVersion":"apps.openshift.io/v1","kind":"DeploymentConfig","name":"jupyterhub-db"}]
+  labels:
+    app: jupyterhub
+  name: jupyterhub
+spec:
+  replicas: 3
+  selector:
+    app: jupyterhub
+    deploymentconfig: jupyterhub
+  strategy:
+    type: Custom
+    resources: {}
+    activeDeadlineSeconds: 300
+    customParams:
+      image: quay.io/openshift/origin-deployer:4.7.0
+      command:
+      - /bin/sh
+      - -c
+      - >
+        function get_latest() {
+          oc get pod -l "deploymentconfig=jupyterhub" -o jsonpath='{.items[0].metadata.labels.deployment}';
+        };
+
+        function generate_payload() {
+          echo '{"kind":"Scale","apiVersion":"autoscaling/v1","metadata":{"name":"'$1'","namespace":"'${OPENSHIFT_DEPLOYMENT_NAMESPACE}'"},"spec":{"replicas": '$2'}}'
+        };
+        
+        function post_scale() {
+          curl -kL -XPUT -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" https://openshift.default.svc.cluster.local/api/v1/namespaces/${OPENSHIFT_DEPLOYMENT_NAMESPACE}/replicationcontrollers/$1/scale -d @$2;
+        };
+
+        function get_replicas() {
+          oc get rc ${OPENSHIFT_DEPLOYMENT_NAME} -o jsonpath='{.metadata.annotations.kubectl\.kubernetes\.io\/desired-replicas}'
+        }
+
+        export TOKEN=$(cat /run/secrets/kubernetes.io/serviceaccount/token);
+        export OLD_RC=$(get_latest);
+
+        echo $(generate_payload ${OLD_RC} 0) > /tmp/old.yaml;
+        echo $(generate_payload ${OPENSHIFT_DEPLOYMENT_NAME} $(get_replicas)) > /tmp/new.yaml;    
+  
+        post_scale ${OLD_RC} /tmp/old.yaml;
+        post_scale ${OPENSHIFT_DEPLOYMENT_NAME} /tmp/new.yaml;
+
+        while ! oc get pods --field-selector='status.phase==Running' -l deployment=="${OPENSHIFT_DEPLOYMENT_NAME}" 2>/dev/null | grep ${OPENSHIFT_DEPLOYMENT_NAME}; do sleep 1; done;
+        echo "Pods for deplyoment ${OPENSHIFT_DEPLOYMENT_NAME} are Running"
+
+        while ! curl http://jupyterhub:8081; do sleep 1; done
+
+  template:
+    metadata:
+      annotations:
+        alpha.image.policy.openshift.io/resolve-names: '*'
+        sidecar.istio.io/inject: "true"
+      labels:
+        app: jupyterhub
+        deploymentconfig: jupyterhub
+        component: web
+        component.opendatahub.io/name: jupyterhub
+        app.kubernetes.io/part-of: jupyterhub
+        opendatahub.io/component: 'true'
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - jupyterhub
+                topologyKey: topology.kubernetes.io/zone
+      containers:
+      - env:
+        - name: NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: JUPYTERHUB_SERVICE_NAME
+          value: jupyterhub
+        - name: JUPYTERHUB_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: $(jupyterhub_secret)
+              key: POSTGRESQL_PASSWORD
+        - name: JUPYTERHUB_DATABASE_HOST
+          value: jupyterhub-db
+        - name: PROMETHEUS_API_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(jupyterhub_secret)
+              key: PROMETHEUS_API_TOKEN
+        - name: APP_SCRIPT
+          value: /opt/app-root/builder/run
+        - name: GPU_MODE
+          valueFrom:
+            configMapKeyRef:
+              name: jupyterhub-cfg
+              key: gpu_mode
+        - name: JUPYTERHUB_ADMIN_USERS
+          valueFrom:
+            configMapKeyRef:
+              name: jupyterhub-cfg
+              key: jupyterhub_admins
+        - name: SINGLEUSER_PVC_SIZE
+          valueFrom:
+            configMapKeyRef:
+              name: jupyterhub-cfg
+              key: singleuser_pvc_size
+        - name: JUPYTERHUB_ADMIN_GROUPS
+          valueFrom:
+            configMapKeyRef:
+              name: $(jupyterhub_groups_config)
+              key: admin_groups
+        - name: JUPYTERHUB_ALLOWED_GROUPS
+          valueFrom:
+            configMapKeyRef:
+              name: $(jupyterhub_groups_config)
+              key: allowed_groups
+        - name: JUPYTERHUB_CRYPT_KEY
+          valueFrom:
+            secretKeyRef:
+              name: $(jupyterhub_secret)
+              key: JUPYTERHUB_CRYPT_KEY
+        - name: JPY_COOKIE_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: $(jupyterhub_secret)
+              key: JPY_COOKIE_SECRET
+        - name: CONFIGPROXY_AUTH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: $(jupyterhub_secret)
+              key: CONFIGPROXY_AUTH_TOKEN
+        - name: NOTEBOOK_NAMESPACE
+          valueFrom:
+            configMapKeyRef:
+              name: jupyterhub-cfg
+              key: notebook_destination
+        - name: TRAEFIK_API_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: $(traefik_credentials_secret)
+              key: TRAEFIK_API_USERNAME
+        - name: TRAEFIK_API_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: $(traefik_credentials_secret)
+              key: TRAEFIK_API_PASSWORD
+        image: quay.io/odh-jupyterhub/jupyterhub-img:v0.3.8
+        imagePullPolicy: "Always"
+        name: jupyterhub
+        ports:
+        - containerPort: 8080
+          protocol: TCP
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: "200m"
+            memory: 1Gi
+        volumeMounts:
+        - mountPath: /opt/app-root/configs
+          name: config
+        readinessProbe:
+            tcpSocket:
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /opt/app-root/src/readinessProbe.sh
+          initialDelaySeconds: 40
+          periodSeconds: 10
+      - name: jupyterhub-ha-sidecar
+        resources:
+          limits:
+            cpu: 150m
+            memory: 150Mi
+          requests:
+            cpu: 50m
+            memory: 50Mi
+        image: 'quay.io/opendatahub/leader-elector:v0.1'
+        volumeMounts:
+        - mountPath: /opt/app-root/src
+          name: sidecar-script
+        args:
+          - '-node-id=$(POD_NAME)'
+          - '-namespace=$(NAMESPACE)'
+        readinessProbe:
+            exec:
+              command:
+              - /bin/sh
+              - -c
+              - /opt/app-root/src/probe.sh
+            initialDelaySeconds: 15
+            periodSeconds: 10
+        livenessProbe:
+          exec:
+            command:
+            - /bin/sh
+            - -c
+            - /opt/app-root/src/probe.sh
+          initialDelaySeconds: 40
+          periodSeconds: 10
+        env:
+          - name: NAMESPACE
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.namespace
+          - name: POD_NAME
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.name
+      initContainers:
+      - command:
+        - wait-for-database
+        env:
+        - name: JUPYTERHUB_DATABASE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: $(jupyterhub_secret)
+              key: POSTGRESQL_PASSWORD
+        - name: JUPYTERHUB_DATABASE_HOST
+          value: jupyterhub-db
+        image: quay.io/odh-jupyterhub/jupyterhub-img:v0.3.8
+        imagePullPolicy: "Always"
+        name: wait-for-database
+        resources:
+          limits:
+            cpu: "1"
+            memory: 1Gi
+          requests:
+            cpu: "200m"
+            memory: 1Gi
+      serviceAccountName: jupyterhub-hub
+      volumes:
+      - name: config 
+        configMap:
+            defaultMode: 420
+            name: jupyterhub-cfg 
+      - name: sidecar-script
+        configMap:
+          defaultMode: 511
+          name: sidecar-probe
+  triggers:
+  - type: ConfigChange

@@ -1,0 +1,14 @@
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: traefik-proxy
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - configmaps
+  resourceNames: ["traefik-rules"]
+  verbs:
+  - get
+  - list
+  - watch

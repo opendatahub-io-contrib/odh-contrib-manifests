@@ -1,0 +1,59 @@
+- op: replace
+  path: /data/jupyterhub_config.py
+  value: |-
+    if "TRUSTED_CA_BUNDLE_PATH" in os.environ:
+          TRUSTED_CA_BUNDLE_PATH = os.environ.get("TRUSTED_CA_BUNDLE_PATH")
+          basepath, filename = os.path.split({TRUSTED_CA_BUNDLE_PATH})
+          spawner = c.OpenShiftSpawner
+
+          def custom_apply_pod_profile(spawner, pod):
+            """
+            Example function for overriding JupyterHub server functionality to modify the user notebook Pod spec
+
+            Should only be called via a function referenced by spawner.modify_pod_hook
+            See https://jupyterhub-kubespawner.readthedocs.io/en/latest/spawner.html
+            """
+            # Apply profile from singleuser-profiles. REQUIRED since we want to extend the current pod spec
+            # configs supported by the JH server
+            apply_pod_profile(spawner, pod)
+
+            print("custom apply pod profile ...")
+            # make pod volume definition from optional CA configmap trusted-cabundle.
+            trustedCAVolume = client.V1Volume(
+              name="trusted-cas-volume",
+              config_map=client.V1ConfigMapVolumeSource(
+                name="trusted-cabundle",
+                optional=True,
+                items=[client.V1KeyToPath(key="ca-bundle.crt", path="trustedcas.pem")],
+              )
+            )
+
+            print("existing container volume mounts ")
+            print (str(pod.spec.containers[0].volume_mounts)[1:-1])
+            newVolumesList = [trustedCAVolume]
+
+            if pod.spec.volumes is None:
+              print("pod def has no volumes yet")
+              pod.spec.volumes = newVolumesList
+            else:
+              print("extending pod def volumes with configmap volume")
+              pod.spec.volumes.extend(newVolumesList)
+
+            print("extending container volume mounts for ca cert configmap")
+            newVolumeMount = client.V1VolumeMount(mount_path=basepath, name="trusted-cas-volume", read_only=True)
+            newVolumeMountList = [newVolumeMount]
+
+            # Inject extraVolumeMount
+            if pod.spec.containers[0].volume_mounts is None:
+              print("notebook container def has no volumes mounted yet")
+              pod.spec.containers[0].volume_mounts = newVolumeMountList
+            else:
+              print("extending existing container def volume mounts section with configmap volume mount reference")
+              pod.spec.containers[0].volume_mounts.extend(newVolumeMountList)
+
+            print("new container volume mounts ")
+            print (str(pod.spec.containers[0].volume_mounts)[1:-1])
+
+            return pod
+
+          spawner.modify_pod_hook = custom_apply_pod_profile
