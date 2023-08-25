@@ -1,0 +1,17 @@
+# comes from https://github.com/iter8-tools/iter8/tree/master/kustomize/controller
+# modified `namespace` and statefulset.yaml
+
+resources:
+- configmap.yaml
+- service.yaml
+- pvc.yaml
+- role.yaml
+- rolebinding.yaml
+- serviceaccount.yaml
+- statefulset.yaml
+
+commonLabels:
+  app.kubernetes.io/name: traffic
+  app.kubernetes.io/version: v0.16
+
+namespace: opendatahub
